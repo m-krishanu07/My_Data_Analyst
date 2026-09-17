@@ -1,5 +1,7 @@
 # My Data Analyst
 
+## App  Link : https://mydataanalyst-ghpmyxyh6vlywrjz3ukpfk.streamlit.app/
+
 Upload a CSV, ask a question in English, get a real answer — computed by Python
 that an LLM wrote and a sandbox executed.
 
@@ -14,6 +16,7 @@ App:  [runs generated pandas in an isolated process]
 ```
 
 ---
+
 
 ## What this is, and what it is not
 
