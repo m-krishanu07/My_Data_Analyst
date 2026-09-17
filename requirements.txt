@@ -1,0 +1,31 @@
+# Runtime dependencies. Pinned so local, CI, Docker and Streamlit Cloud all
+# resolve to the same versions — an unpinned `pandas` upgrading under the
+# sandbox worker is exactly the kind of drift that breaks generated code.
+
+# ── App ───────────────────────────────────────────────────────
+streamlit==1.50.0
+python-dotenv==1.2.3
+
+# ── LLM providers ─────────────────────────────────────────────
+groq==1.7.0
+boto3==1.43.95          # AWS Bedrock (converse API)
+
+# ── Data / analysis ───────────────────────────────────────────
+pandas==2.2.3
+numpy==2.2.1
+scipy==1.16.3
+scikit-learn==1.8.0
+statsmodels==0.15.0     # required by plotly's trendline='ols'
+tabulate==0.10.0        # DataFrame.to_markdown() in the sandbox worker
+
+# ── Charting ──────────────────────────────────────────────────
+matplotlib==3.10.7
+seaborn==0.13.2
+plotly==7.1.0
+# Not imported directly — it is matplotlib's and streamlit's PNG codec, and the
+# sandbox ships charts as PNG bytes, so it is pinned to the version the test
+# suite actually ran against rather than left to float.
+pillow==11.3.0
+# NOTE: kaleido is deliberately absent. Plotly figures cross the sandbox
+# boundary as JSON and are rebuilt client-side, so no static image export
+# is needed and charts stay interactive.

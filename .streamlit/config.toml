@@ -1,0 +1,31 @@
+# Committed on purpose. Only secrets.toml is gitignored.
+#
+# These values must stay in sync with PALETTE in src/ui/styles.py: Streamlit
+# themes its own widgets from here, while the custom CSS themes everything
+# else. When the two disagree you get dark dropdowns on a paper-white page.
+#
+# The chart theme in src/sandbox/worker.py mirrors these colours too, so
+# generated figures sit on the page instead of on top of it.
+
+[theme]
+base = "light"
+primaryColor = "#14395e"
+backgroundColor = "#e8e4dc"
+secondaryBackgroundColor = "#f3f1ec"
+textColor = "#1a1a17"
+font = "sans serif"
+
+[server]
+# CSV uploads are capped in the app as well (MAX_UPLOAD_MB); this is the
+# transport-level limit and should not be lower than it.
+maxUploadSize = 100
+enableXsrfProtection = true
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# Tracebacks belong in the logs, not in a stranger's browser.
+showErrorDetails = false
+toolbarMode = "minimal"

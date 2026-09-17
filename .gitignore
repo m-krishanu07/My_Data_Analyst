@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+.env
+# Only secrets are ignored here. `.streamlit/config.toml` carries the theme
+# and MUST be committed — ignoring the whole directory is why the deployed
+# app used to render with default styling.
+.streamlit/secrets.toml
+
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+.DS_Store
+.idea/
+.vscode/
+.claude/
+tmp/

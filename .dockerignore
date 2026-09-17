@@ -1,0 +1,36 @@
+# Keeps the build context small and, more importantly, keeps secrets and
+# developer state out of the image.
+
+.env
+.streamlit/secrets.toml
+
+.git
+.gitignore
+.github
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+.venv/
+venv/
+env/
+
+# Test suite and benchmark harness are not needed at runtime. The demo data
+# they read *is* — it backs the sample datasets and the offline demo fixture.
+tests/
+eval/
+
+Dockerfile
+.dockerignore
+README.md
+
+.DS_Store
+.idea/
+.vscode/
+.claude/
+tmp/

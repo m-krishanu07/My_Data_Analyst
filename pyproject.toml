@@ -1,0 +1,43 @@
+[project]
+name = "conversational-data-analyst"
+version = "1.0.0"
+description = "Ask questions about a CSV in plain English; answers are computed by sandboxed, LLM-generated pandas code."
+# 3.13 is what the test suite, CI and the Docker image all run. Claiming a
+# lower floor would be claiming support that nothing verifies.
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = [
+    # A future pandas/numpy deprecation should fail the build while it is
+    # still cheap to fix, not on the day it becomes an error.
+    "error::FutureWarning",
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# BLE and S are selected deliberately: this codebase executes untrusted code
+# and swallows exceptions on purpose in a few places. Enabling the rules makes
+# every one of those spots an explicit, reviewed `noqa` instead of an
+# invisible habit.
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM", "RUF", "BLE", "S"]
+ignore = [
+    "SIM108",  # ternaries are not always clearer
+    "RUF001",  # typographic dashes/quotes in prose are intentional
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests deliberately contain escape payloads and long inline code samples,
+# and asserting is what a test is for.
+"tests/*" = ["E501", "S101"]
+# Task definitions embed reference `def run(df)` source as string literals.
+"eval/tasks.py" = ["E501"]
+# The worker must claim stdout before importing anything that could write to it.
+"src/sandbox/worker.py" = ["E402"]

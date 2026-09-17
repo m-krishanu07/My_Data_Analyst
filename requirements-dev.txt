@@ -1,0 +1,8 @@
+# Development and CI dependencies.
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest==9.1.1
+pytest-timeout==2.4.0   # sandbox tests must not hang CI if a kill regresses
+ruff==0.16.7

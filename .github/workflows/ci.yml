@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      # All development and testing happened on Windows, where the address-space
+      # rlimit is a no-op. Linux enforces it for real, and it applies to the
+      # worker's *virtual* memory — pandas + sklearn + matplotlib + plotly can
+      # reserve well past the 2 GB default just by importing. Raised here so a
+      # sandbox test failure means a real bug rather than an import OOM.
+      SANDBOX_MEMORY_MB: "4096"
+      # Cold CI runners import that stack more slowly than a warm laptop.
+      SANDBOX_STARTUP_TIMEOUT: "120"
+      MPLBACKEND: Agg
+      # No provider credentials are set, and none are needed: nothing in the
+      # suite calls a live API. Tests that exercise the agent use fakes.
+      LOG_LEVEL: WARNING
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Single version on purpose. pyproject declares >=3.13; testing a
+          # matrix we do not support would be theatre.
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
+
+      - name: Verify benchmark ground truth
+        # Runs every task's reference implementation through the real sandbox
+        # and the real scorer. No model, no network, no cost. If this drifts,
+        # the published pass rates stop meaning anything.
+        run: python -m eval.run_benchmark --verify

@@ -1,0 +1,168 @@
+{
+  "generated": "2026-09-16 16:08 UTC",
+  "note": "Recorded by `python -m eval.run_benchmark --record`. Only tasks the benchmark scored correct are included. Replayed offline by src/llm/replay_provider.py; the code is still validated and executed.",
+  "entries": [
+    {
+      "task_id": "C1",
+      "dataset": "customer_churn",
+      "question": "What is the overall churn rate?",
+      "response": "```python\ndef run(df):\n    # Verify the required column exists\n    if 'Churn' not in df.columns:\n        return (\"Column 'Churn' not found in the dataset.\", None)\n\n    # Count total customers and those who churned\n    total = len(df)\n    churn_yes = (df['Churn'] == 'Yes').sum()\n\n    # Compute churn rate\n    churn_rate = churn_yes / total\n\n    # Return a tidy one‑row DataFrame for nice tabular display\n    result = pd.DataFrame({\n        'TotalCustomers': [total],\n        'Churned': [churn_yes],\n        'ChurnRate': [round(churn_rate, 4)]\n    })\n    return (result, None)\n```\nThis returns the overall churn rate (as a proportion rounded to four decimals) together with the raw counts.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2057,
+      "output_tokens": 246
+    },
+    {
+      "task_id": "C2",
+      "dataset": "customer_churn",
+      "question": "Which contract type has the highest churn rate, and what is that rate?",
+      "response": "```python\ndef run(df):\n    # Verify required columns\n    required = ['Contract', 'Churn']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Compute churn indicator (1 for Yes, 0 for No)\n    churn_indicator = df['Churn'].map({'Yes': 1, 'No': 0})\n    # Group by contract and calculate churn rate\n    churn_rate = (\n        df.assign(_churn=churn_indicator)\n          .groupby('Contract')['_churn']\n          .mean()\n          .reset_index()\n          .rename(columns={'_churn': 'ChurnRate'})\n    )\n    # Convert to percentage and round\n    churn_rate['ChurnRate'] = (churn_rate['ChurnRate'] * 100).round(2)\n\n    # Identify the contract with the highest churn rate\n    top_row = churn_rate.loc[churn_rate['ChurnRate'].idxmax()]\n    top_contract = top_row['Contract']\n    top_rate = top_row['ChurnRate']\n\n    # Optional bar plot\n    fig = px.bar(\n        churn_rate,\n        x='Contract',\n        y='ChurnRate',\n        title='Churn Rate by Contract Type',\n        text='ChurnRate',\n        labels={'ChurnRate': 'Churn Rate (%)'}\n    )\n    fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')\n    fig.update_layout(yaxis=dict(range=[0, churn_rate['ChurnRate'].max()*1.2]))\n\n    summary = (\n        f\"The contract type with the highest churn rate is **{top_contract}** \"\n        f\"at **{top_rate:.2f}%**.\"\n    )\n    # Return both a readable summary and the full table\n    result = pd.concat([\n        pd.DataFrame({'Metric': ['Highest churn contract', 'Rate (%)'],\n                      'Value': [top_contract, top_rate]}),\n        churn_rate.rename(columns={'Contract': 'Metric', 'ChurnRate': 'Value'})\n    ], ignore_index=True)\n\n    return (summary, fig)\n```\nThis computes churn percentages for each contract, highlights the highest‑churn contract, and returns a bar chart visualising the rates.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2065,
+      "output_tokens": 654
+    },
+    {
+      "task_id": "C3",
+      "dataset": "customer_churn",
+      "question": "Compare the average tenure in months of churned versus retained customers.",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['TenureMonths', 'Churn']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Drop rows where TenureMonths is missing (none in this dataset, but safe)\n    data = df.dropna(subset=['TenureMonths'])\n\n    # Group by churn status and compute mean tenure\n    summary = (\n        data.groupby('Churn', dropna=False)['TenureMonths']\n        .agg(['mean', 'count'])\n        .round(2)\n        .reset_index()\n    )\n    summary.columns = ['Churn', 'Avg TenureMonths', 'Customer Count']\n\n    return (summary, None)\n```\nThis returns a small table showing the average tenure for customers who churned versus those who stayed.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2063,
+      "output_tokens": 270
+    },
+    {
+      "task_id": "C4",
+      "dataset": "customer_churn",
+      "question": "What is the correlation between SupportCalls and SatisfactionScore?",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['SupportCalls', 'SatisfactionScore']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Drop rows where either column is NaN\n    data = df.dropna(subset=required)\n    if len(data) < 3:\n        return (\"Not enough complete observations to compute a correlation.\", None)\n\n    # Pearson correlation\n    r, p = scipy_stats.pearsonr(data['SupportCalls'], data['SatisfactionScore'])\n\n    # Build a scatter plot with a linear trendline (plotly)\n    fig = px.scatter(\n        data,\n        x='SupportCalls',\n        y='SatisfactionScore',\n        trendline='ols',\n        title=f'Support Calls vs. Satisfaction Score (r = {r:.3f})',\n        labels={'SupportCalls': 'Support Calls', 'SatisfactionScore': 'Satisfaction Score'}\n    )\n\n    # Interpret significance\n    significance = \"statistically significant\" if p < 0.05 else \"not statistically significant\"\n    result = (\n        f\"Pearson correlation = {r:.3f} (p = {p:.4f}) — {significance} \"\n        f\"based on {len(data):,} rows.\"\n    )\n    return (result, fig)\n```\nThis drops missing values, computes the Pearson r, reports its p‑value, and returns a Plotly scatter with an OLS trendline.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2061,
+      "output_tokens": 418
+    },
+    {
+      "task_id": "C5",
+      "dataset": "customer_churn",
+      "question": "How many customers have a missing TotalCharges value?",
+      "response": "```python\ndef run(df):\n    # Verify the required column exists\n    if 'TotalCharges' not in df.columns:\n        return (\"Column 'TotalCharges' not found in the dataset.\", None)\n    \n    # Count missing (NaN) values in TotalCharges\n    missing_count = int(df['TotalCharges'].isna().sum())\n    \n    # Return the count; no figure is needed\n    return (missing_count, None)\n```",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2060,
+      "output_tokens": 204
+    },
+    {
+      "task_id": "C6",
+      "dataset": "customer_churn",
+      "question": "Show the churn rate by internet service type as a bar chart.",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['InternetService', 'Churn']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Keep only rows where both fields are present\n    data = df.dropna(subset=required)\n\n    # Compute churn rate per InternetService\n    churn_counts = (\n        data.groupby('InternetService')['Churn']\n        .apply(lambda s: (s == 'Yes').mean())\n        .reset_index(name='ChurnRate')\n    )\n    churn_counts['ChurnRate'] = (churn_counts['ChurnRate'] * 100).round(2)  # percent\n\n    # Plot bar chart (Plotly)\n    fig = px.bar(\n        churn_counts,\n        x='InternetService',\n        y='ChurnRate',\n        text='ChurnRate',\n        labels={'InternetService': 'Internet Service', 'ChurnRate': 'Churn Rate (%)'},\n        title='Churn Rate by Internet Service Type',\n        color='InternetService',\n        color_discrete_sequence=px.colors.qualitative.Vivid,\n    )\n    fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')\n    fig.update_layout(yaxis=dict(range=[0, churn_counts['ChurnRate'].max() * 1.2]),\n                      uniformtext_minsize=8, uniformtext_mode='hide')\n\n    return (churn_counts, fig)\n```",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2063,
+      "output_tokens": 467
+    },
+    {
+      "task_id": "C7",
+      "dataset": "customer_churn",
+      "question": "Which internet service type has the highest average monthly charges, and what is that average?",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['InternetService', 'MonthlyCharges']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Remove rows where MonthlyCharges is missing (should be none, but be safe)\n    data = df.dropna(subset=['MonthlyCharges'])\n\n    # Compute average MonthlyCharges per InternetService\n    avg_charges = (\n        data.groupby('InternetService', dropna=False)['MonthlyCharges']\n        .mean()\n        .round(2)\n        .reset_index()\n        .rename(columns={'MonthlyCharges': 'AvgMonthlyCharges'})\n    )\n\n    # Identify the service with the highest average\n    idx_max = avg_charges['AvgMonthlyCharges'].idxmax()\n    best_row = avg_charges.loc[[idx_max]].reset_index(drop=True)\n\n    # Return a tidy DataFrame showing the result\n    return (best_row, None)\n```\nThe function returns a one‑row DataFrame with the `InternetService` that has the highest average `MonthlyCharges` and the corresponding average value.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2067,
+      "output_tokens": 373
+    },
+    {
+      "task_id": "C8",
+      "dataset": "customer_churn",
+      "question": "What is the median satisfaction score among customers who churned?",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['Churn', 'SatisfactionScore']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Keep only rows where churned and satisfaction score is not null\n    churned = df[(df['Churn'] == 'Yes')].dropna(subset=['SatisfactionScore'])\n\n    if churned.empty:\n        return (\"No churned customers with a recorded SatisfactionScore.\", None)\n\n    median_score = churned['SatisfactionScore'].median()\n    result = f\"Median SatisfactionScore for churned customers: {median_score:.2f}\"\n    return (result, None)\n```\nThis computes the median satisfaction score for customers whose **Churn** value is “Yes”, ignoring missing scores.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2062,
+      "output_tokens": 266
+    },
+    {
+      "task_id": "R1",
+      "dataset": "retail_orders",
+      "question": "What is the total sales revenue across all orders?",
+      "response": "```python\ndef run(df):\n    # Verify the required column exists\n    if 'Sales' not in df.columns:\n        return (\"Column 'Sales' not found in the dataset.\", None)\n\n    # Sum the sales values, ignoring any potential NaNs just in case\n    total_sales = df['Sales'].sum(skipna=True)\n\n    # Return the result as a readable string and no figure\n    return (f\"Total sales revenue across all orders: {total_sales:,.2f}\", None)\n```",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2082,
+      "output_tokens": 160
+    },
+    {
+      "task_id": "R10",
+      "dataset": "retail_orders",
+      "question": "How many missing values are there in the ShippingDays column?",
+      "response": "```python\ndef run(df):\n    if 'ShippingDays' not in df.columns:\n        return (\"Column 'ShippingDays' not found.\", None)\n    missing_count = df['ShippingDays'].isna().sum()\n    return (f\"Missing values in 'ShippingDays': {missing_count:,}\", None)\n```",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2084,
+      "output_tokens": 105
+    },
+    {
+      "task_id": "R2",
+      "dataset": "retail_orders",
+      "question": "Which region has the highest average sales per order, and what is that average?",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    missing = [c for c in ['Region', 'Sales'] if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Compute average sales per order for each region\n    avg_sales = (\n        df.groupby('Region', dropna=False)['Sales']\n        .mean()\n        .round(2)\n        .sort_values(ascending=False)\n    )\n\n    # Identify the region with the highest average\n    top_region = avg_sales.idxmax()\n    top_average = avg_sales.max()\n\n    # Return a tidy DataFrame showing all averages and highlight the top one\n    result = avg_sales.reset_index()\n    result.columns = ['Region', 'AverageSales']\n    # Add a flag column for easy visual identification (optional)\n    result['TopRegion'] = result['Region'] == top_region\n\n    # Also return a concise summary string\n    summary = f\"Region with highest average sales: {top_region} (Average = {top_average})\"\n\n    # Return both the table and the summary as a tuple (the caller can use either)\n    return (summary, None)\n```",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2088,
+      "output_tokens": 428
+    },
+    {
+      "task_id": "R3",
+      "dataset": "retail_orders",
+      "question": "What is the correlation between Discount and Profit?",
+      "response": "```python\ndef run(df):\n    # Verify required columns are present\n    missing = [c for c in ['Discount', 'Profit'] if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Drop rows where either column is NaN so the two series stay aligned\n    data = df.dropna(subset=['Discount', 'Profit'])\n    if len(data) < 3:\n        return (\"Not enough non‑missing rows to compute a correlation.\", None)\n\n    # Pearson correlation\n    r, p = scipy_stats.pearsonr(data['Discount'], data['Profit'])\n\n    # Build a scatter plot with a linear trendline (plotly)\n    fig = px.scatter(\n        data,\n        x='Discount',\n        y='Profit',\n        trendline='ols',\n        title=f'Discount vs Profit (Pearson r = {r:.3f})',\n        labels={'Discount': 'Discount', 'Profit': 'Profit'}\n    )\n\n    # Human‑readable summary\n    significance = 'statistically significant' if p < 0.05 else 'not statistically significant'\n    result = (\n        f\"Pearson correlation r = {r:.3f} (p = {p:.4f}) — {significance} \"\n        f\"based on {len(data):,} rows with non‑missing values.\"\n    )\n    return (result, fig)\n```\nThe function drops missing values, computes Pearson r and p‑value, and returns a scatter plot with an OLS trendline.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2081,
+      "output_tokens": 413
+    },
+    {
+      "task_id": "R4",
+      "dataset": "retail_orders",
+      "question": "What percentage of orders were returned?",
+      "response": "```python\ndef run(df):\n    # Verify the required column exists\n    if 'Returned' not in df.columns:\n        return (\"Column 'Returned' not found in the dataset.\", None)\n\n    # Compute the proportion of returned orders\n    total = len(df)\n    returned_count = (df['Returned'] == 'Yes').sum()\n    percent_returned = (returned_count / total) * 100\n\n    result = (\n        f\"Returned orders: {returned_count:,} out of {total:,} \"\n        f\"({percent_returned:.2f}% of all orders).\"\n    )\n    return (result, None)\n```\nThis returns a clear percentage of orders that were marked as returned.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2079,
+      "output_tokens": 223
+    },
+    {
+      "task_id": "R5",
+      "dataset": "retail_orders",
+      "question": "How many orders had a quantity of 5 or more and a discount greater than 10%?",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['Quantity', 'Discount']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Remove rows where Discount is missing so the comparison is valid\n    df_clean = df.dropna(subset=['Discount'])\n\n    # Apply the two conditions\n    mask = (df_clean['Quantity'] >= 5) & (df_clean['Discount'] > 0.10)\n\n    count = int(mask.sum())\n    return (count, None)\n```\nThis returns the number of orders with a quantity ≥ 5 **and** a discount > 10 %.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2092,
+      "output_tokens": 262
+    },
+    {
+      "task_id": "R6",
+      "dataset": "retail_orders",
+      "question": "What is the median number of shipping days? Ignore missing values.",
+      "response": "```python\ndef run(df):\n    if 'ShippingDays' not in df.columns:\n        return (\"Column 'ShippingDays' not found.\", None)\n    median_val = df['ShippingDays'].median(skipna=True)\n    return (f\"Median ShippingDays (ignoring missing values): {median_val}\", None)\n```",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2085,
+      "output_tokens": 108
+    },
+    {
+      "task_id": "R7",
+      "dataset": "retail_orders",
+      "question": "Which three product categories generate the most total profit?",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['Category', 'Profit']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Aggregate profit per category\n    profit_by_cat = (\n        df.groupby('Category', dropna=False)['Profit']\n        .sum()\n        .reset_index()\n        .rename(columns={'Profit': 'TotalProfit'})\n    )\n\n    # Sort descending and take the top three\n    top_three = profit_by_cat.sort_values('TotalProfit', ascending=False).head(3)\n\n    # Round for nicer display\n    top_three['TotalProfit'] = top_three['TotalProfit'].round(2)\n\n    return (top_three, None)\n```\nThis returns a DataFrame listing the three categories with the highest summed profit.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2082,
+      "output_tokens": 269
+    },
+    {
+      "task_id": "R8",
+      "dataset": "retail_orders",
+      "question": "Create a bar chart of total sales by category.",
+      "response": "```python\ndef run(df):\n    # Verify required columns exist\n    required = ['Category', 'Sales']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Aggregate total sales per category\n    totals = (\n        df.groupby('Category', dropna=False)['Sales']\n        .sum()\n        .reset_index()\n        .rename(columns={'Sales': 'TotalSales'})\n        .sort_values('TotalSales', ascending=False)\n    )\n\n    # Create a bar chart (Plotly)\n    fig = px.bar(\n        totals,\n        x='Category',\n        y='TotalSales',\n        title='Total Sales by Category',\n        text_auto='.2s',\n        labels={'TotalSales': 'Total Sales (USD)'},\n        color='Category',\n        color_discrete_sequence=px.colors.qualitative.Pastel,\n    )\n    fig.update_layout(xaxis_title='Category', yaxis_title='Total Sales', showlegend=False)\n\n    return (totals, fig)\n```\nThe function returns a DataFrame with the summed sales per category and a Plotly bar chart visualising those totals.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2082,
+      "output_tokens": 345
+    },
+    {
+      "task_id": "R9",
+      "dataset": "retail_orders",
+      "question": "Plot total sales by month over time.",
+      "response": "```python\ndef run(df):\n    # Verify required columns\n    required = ['OrderDate', 'Sales']\n    missing = [c for c in required if c not in df.columns]\n    if missing:\n        return (f\"Missing column(s): {', '.join(missing)}.\", None)\n\n    # Drop rows where either field is missing\n    data = df.dropna(subset=required).copy()\n\n    # Convert OrderDate to datetime (ignore errors)\n    data['OrderDate'] = pd.to_datetime(data['OrderDate'], errors='coerce')\n    data = data.dropna(subset=['OrderDate'])\n\n    # Create a month period (e.g., 2023-01)\n    data['Month'] = data['OrderDate'].dt.to_period('M').dt.to_timestamp()\n\n    # Aggregate total sales per month\n    monthly_sales = (\n        data.groupby('Month', as_index=False)['Sales']\n        .sum()\n        .sort_values('Month')\n    )\n    monthly_sales.rename(columns={'Sales': 'TotalSales'}, inplace=True)\n\n    # Plot with Plotly (interactive line chart)\n    fig = px.line(\n        monthly_sales,\n        x='Month',\n        y='TotalSales',\n        title='Total Sales by Month',\n        labels={'Month': 'Month', 'TotalSales': 'Total Sales'},\n    )\n    fig.update_layout(xaxis_tickformat='%Y-%m')\n\n    return (monthly_sales, fig)\n```\nThe function returns a DataFrame with month‑wise totals and an interactive line chart.",
+      "model": "openai/gpt-oss-120b",
+      "input_tokens": 2080,
+      "output_tokens": 392
+    }
+  ]
+}
