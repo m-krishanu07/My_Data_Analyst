@@ -1,11 +1,9 @@
-# Conversational Data Analyst
+# My Data Analyst
 
 Upload a CSV, ask a question in English, get a real answer — computed by Python
 that an LLM wrote and a sandbox executed.
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
-
-> Replace `OWNER/REPO` in the badge above with your GitHub path after the first push.
+[![CI](https://github.com/m-krishanu07/My_Data_Analyst/actions/workflows/ci.yml/badge.svg)](https://github.com/m-krishanu07/My_Data_Analyst/actions/workflows/ci.yml)
 
 ```
 You:  Which region has the highest average profit margin?
@@ -234,7 +232,7 @@ python -m eval.run_benchmark --models groq:openai/gpt-oss-120b --record
 Requires **Python 3.13+**.
 
 ```bash
-git clone <your-repo-url> && cd conversational-data-analyst
+git clone <your-repo-url> && cd my-data-analyst
 python -m venv .venv && .venv\Scripts\activate     # Windows
 # python3 -m venv .venv && source .venv/bin/activate  # macOS / Linux
 pip install -r requirements.txt

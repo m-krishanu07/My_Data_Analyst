@@ -1,5 +1,5 @@
 [project]
-name = "conversational-data-analyst"
+name = "my-data-analyst"
 version = "1.0.0"
 description = "Ask questions about a CSV in plain English; answers are computed by sandboxed, LLM-generated pandas code."
 # 3.13 is what the test suite, CI and the Docker image all run. Claiming a

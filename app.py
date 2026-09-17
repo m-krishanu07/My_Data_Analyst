@@ -1,5 +1,5 @@
 """
-Conversational Data Analyst — Streamlit entrypoint.
+My Data Analyst — Streamlit entrypoint.
 
 Ask questions about a CSV in plain English. An LLM writes pandas code, the
 code runs in an isolated subprocess sandbox, and the result comes back as
@@ -38,7 +38,7 @@ setup_logging()
 logger = get_logger(__name__)
 
 st.set_page_config(
-    page_title="Conversational Data Analyst",
+    page_title="My Data Analyst",
     # A Material glyph rather than an emoji, to match the monochrome UI.
     page_icon=":material/query_stats:",
     layout="wide",
@@ -304,7 +304,7 @@ def answer(query: str, df: pd.DataFrame, provider: LLMProvider | None = None) ->
 
 def main() -> None:
     page_header(
-        "Conversational Data Analyst",
+        "My Data Analyst",
         "Ask questions about a CSV in plain English. Answers and charts are computed live.",
     )
 
